@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/atmannshah/sitesight/actions"><img src="https://github.com/atmannshah/sitesight/actions/workflows/tests.yml/badge.svg"></a>
-  <a href="https://<your-app>.streamlit.app"><img src="https://static.streamlit.io/badges/streamlit_badge_black_white.svg"></a>
+  <a href="https://sitesight.streamlit.app"><img src="https://static.streamlit.io/badges/streamlit_badge_black_white.svg"></a>
 </p>
 
 Map known phosphorylation sites onto AlphaFold structures and check how well each site is modelled and how exposed it is.
