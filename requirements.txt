@@ -1,3 +1,6 @@
 requests
 biopython
 matplotlib
+pandas
+streamlit
+py3Dmol
