@@ -1,3 +1,5 @@
+import json
+
 import py3Dmol
 import streamlit as st
 import streamlit.components.v1 as components
@@ -5,19 +7,34 @@ from Bio.SeqUtils import seq1
 
 from sitesight import analyse
 
+CLICK = """function(atom, viewer) {
+    var rsa = RSA;
+    viewer.picked = viewer.picked || {};
+    if (viewer.picked[atom.resi]) {
+        viewer.removeLabel(viewer.picked[atom.resi]);
+        delete viewer.picked[atom.resi];
+    } else {
+        viewer.picked[atom.resi] = viewer.addLabel(
+            atom.resn + " " + atom.resi + "  pLDDT " + atom.b.toFixed(1) + "  RSA " + rsa[atom.resi],
+            {position: atom, fontSize: 12, fontColor: "white", backgroundColor: "#0053D6", backgroundOpacity: 0.9}
+        );
+    }
+    viewer.render();
+}"""
+
 st.caption("Phosphates can't run, they can't hide either...")
 uid = st.text_input("UniProt ID", "P04637", label_visibility="collapsed", placeholder="UniProt ID, e.g. P04637").strip().upper()
 
 try:
-    with st.spinner("Pinpointing those phosphosites for you."):
-        pdb, plddt, sites = st.cache_data(analyse)(uid)
+    with st.spinner("Folding... kidding, AlphaFold already did that."):
+        pdb, residues, sites = st.cache_data(analyse)(uid)
 except Exception:
     st.error(f"No AlphaFold model for {uid}. Either it's a typo, or it's still folding.")
     st.stop()
 
 a, b, c = st.columns(3)
-a.metric("Residues", len(plddt))
-b.metric("Mean pLDDT", f"{plddt.mean():.1f}")
+a.metric("Residues", len(residues))
+b.metric("Mean pLDDT", f"{residues['pLDDT'].mean():.1f}")
 c.metric("Phosphosites", len(sites))
 
 left, right = st.columns([3, 2], gap="large")
@@ -36,12 +53,13 @@ with left:
             view.addStyle({"resi": pos}, {"stick": {"colorscheme": "redCarbon", "radius": 0.3}})
             view.addLabel(f"{seq1(res)}{pos}", {"fontSize": 11, "fontColor": "#111827", "backgroundColor": "white", "backgroundOpacity": 0.85, "borderThickness": 0}, {"resi": pos, "atom": "CA"})
         caption = "Phosphosites shown as red sticks, labelled by residue and position."
+    view.setClickable({}, True, CLICK.replace("RSA;", json.dumps(residues["RSA"].to_dict()) + ";"))
     view.zoomTo()
     components.html(view._make_html(), height=520)
-    st.caption(caption)
+    st.caption(caption + " Click any residue for details, click again to hide.")
 
 with right:
-    st.line_chart(plddt, height=220)
+    st.line_chart(residues["pLDDT"], height=220)
     if sites.empty:
         st.info("No annotated phosphosites. The kinases have left this one on read.")
     else:

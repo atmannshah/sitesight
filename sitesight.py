@@ -14,19 +14,16 @@ def analyse(uid):
     pdb = requests.get(info["pdbUrl"]).text
     structure = PDBParser(QUIET=True).get_structure(uid, StringIO(pdb))
     ShrakeRupley().compute(structure, level="R")
-    residues = {r.id[1]: r for r in structure.get_residues()}
-    plddt = pd.Series({i: r["CA"].get_bfactor() for i, r in residues.items()}, name="pLDDT")
-    sites = pd.DataFrame(
+    residues = pd.DataFrame(
         [
             {
-                "pos": pos,
-                "res": residues[pos].get_resname(),
-                "pLDDT": plddt[pos],
-                "RSA": round(residues[pos].sasa / residue_sasa_scales["Sander"][residues[pos].get_resname()], 2),
-                "type": kind,
+                "pos": r.id[1],
+                "res": r.get_resname(),
+                "pLDDT": r["CA"].get_bfactor(),
+                "RSA": round(r.sasa / residue_sasa_scales["Sander"][r.get_resname()], 2),
             }
-            for pos, kind in phosphosites(uid).items()
-        ],
-        columns=["pos", "res", "pLDDT", "RSA", "type"],
-    )
-    return pdb, plddt, sites
+            for r in structure.get_residues()
+        ]
+    ).set_index("pos")
+    sites = residues.join(pd.Series(phosphosites(uid), name="type", dtype=str), how="inner").rename_axis("pos").reset_index()
+    return pdb, residues, sites
