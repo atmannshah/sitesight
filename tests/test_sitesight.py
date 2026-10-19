@@ -34,8 +34,13 @@ def test_only_phosphates_get_an_invite(monkeypatch):
 
 def test_analyse(monkeypatch):
     monkeypatch.setattr(sitesight.requests, "get", fake_get)
-    monkeypatch.setattr(uniprot.requests, "get", fake_get)
-    pdb, plddt, sites = sitesight.analyse("X")
-    assert plddt.tolist() == [90, 60, 30]
-    assert sites[["pos", "res", "pLDDT"]].values.tolist() == [[2, "SER", 60]]
-    assert 0 < sites["RSA"][0]
+    pdb, residues, sites = sitesight.analyse("X")
+    assert residues["pLDDT"].tolist() == [90, 60, 30]
+    assert (residues["RSA"] > 0).all()
+    assert sites[["pos", "res", "pLDDT", "type"]].values.tolist() == [[2, "SER", 60, "Phosphoserine"]]
+
+
+def test_no_sites(monkeypatch):
+    monkeypatch.setitem(FEATURES, "features", [])
+    monkeypatch.setattr(sitesight.requests, "get", fake_get)
+    assert sitesight.analyse("X")[2].empty
