@@ -22,7 +22,7 @@ CLICK = """function(atom, viewer) {
     viewer.render();
 }"""
 
-st.caption("Phosphates can't run, they can't hide either...")
+st.caption("Kinases know exactly where they're going. Now you can too.")
 uid = st.text_input("UniProt ID", "P04637", label_visibility="collapsed", placeholder="UniProt ID, e.g. P04637").strip().upper()
 
 try:
@@ -39,6 +39,16 @@ c.metric("Phosphosites", len(sites))
 
 left, right = st.columns([3, 2], gap="large")
 
+with right:
+    st.line_chart(residues["pLDDT"], height=220)
+    if sites.empty:
+        st.info("No annotated phosphosites. The kinases have left this one on read.")
+        picked = None
+    else:
+        rows = st.dataframe(sites, hide_index=True, on_select="rerun", selection_mode="single-row").selection.rows
+        picked = int(sites["pos"][rows[0]]) if rows else None
+        st.caption("Select a row to zoom to that site.")
+
 with left:
     mode = st.segmented_control("View", ["Confidence", "Phosphosites"], default="Confidence", label_visibility="collapsed") or "Confidence"
     view = py3Dmol.view(width=700, height=520)
@@ -54,15 +64,12 @@ with left:
             view.addLabel(f"{seq1(res)}{pos}", {"fontSize": 11, "fontColor": "#111827", "backgroundColor": "white", "backgroundOpacity": 0.85, "borderThickness": 0}, {"resi": pos, "atom": "CA"})
         caption = "Phosphosites shown as red sticks, labelled by residue and position."
     view.setClickable({}, True, CLICK.replace("RSA;", json.dumps(residues["RSA"].to_dict()) + ";"))
-    view.zoomTo()
+    if picked:
+        view.addStyle({"resi": picked}, {"stick": {"colorscheme": "yellowCarbon", "radius": 0.35}})
+        view.zoomTo({"within": {"distance": 12, "sel": {"resi": picked}}})
+    else:
+        view.zoomTo()
     components.html(view._make_html(), height=520)
     st.caption(caption + " Click any residue for details, click again to hide.")
-
-with right:
-    st.line_chart(residues["pLDDT"], height=220)
-    if sites.empty:
-        st.info("No annotated phosphosites. The kinases have left this one on read.")
-    else:
-        st.dataframe(sites, hide_index=True)
 
 st.caption("Structures from AlphaFold DB, sites from UniProt. SiteSight just points at things.")
