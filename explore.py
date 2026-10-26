@@ -35,14 +35,14 @@ except Exception:
 a, b, c = st.columns(3)
 a.metric("Residues", len(residues))
 b.metric("Mean pLDDT", f"{residues['pLDDT'].mean():.1f}")
-c.metric("Phosphosites", len(sites))
+c.metric("PTM sites", len(sites))
 
 left, right = st.columns([3, 2], gap="large")
 
 with right:
     st.line_chart(residues["pLDDT"], height=220)
     if sites.empty:
-        st.info("No annotated phosphosites. The kinases have left this one on read.")
+        st.info("No annotated PTMs. This protein is exactly as translated, apparently.")
         picked = None
     else:
         rows = st.dataframe(sites, hide_index=True, on_select="rerun", selection_mode="single-row").selection.rows
@@ -50,7 +50,7 @@ with right:
         st.caption("Select a row to zoom to that site.")
 
 with left:
-    mode = st.segmented_control("View", ["Confidence", "Phosphosites"], default="Confidence", label_visibility="collapsed") or "Confidence"
+    mode = st.segmented_control("View", ["Confidence", "PTMs"], default="Confidence", label_visibility="collapsed") or "Confidence"
     view = py3Dmol.view(width=700, height=520)
     view.addModel(pdb, "pdb")
     view.setBackgroundColor("white")
@@ -62,7 +62,7 @@ with left:
         for pos, res in zip(sites["pos"].tolist(), sites["res"]):
             view.addStyle({"resi": pos}, {"stick": {"colorscheme": "redCarbon", "radius": 0.3}})
             view.addLabel(f"{seq1(res)}{pos}", {"fontSize": 11, "fontColor": "#111827", "backgroundColor": "white", "backgroundOpacity": 0.85, "borderThickness": 0}, {"resi": pos, "atom": "CA"})
-        caption = "Phosphosites shown as red sticks, labelled by residue and position."
+        caption = "PTM sites shown as red sticks, labelled by residue and position."
     view.setClickable({}, True, CLICK.replace("RSA;", json.dumps(residues["RSA"].to_dict()) + ";"))
     if picked:
         view.addStyle({"resi": picked}, {"stick": {"colorscheme": "yellowCarbon", "radius": 0.35}})
