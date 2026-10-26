@@ -6,7 +6,7 @@ from Bio.Data.PDBData import residue_sasa_scales
 from Bio.PDB import PDBParser
 from Bio.PDB.SASA import ShrakeRupley
 
-from uniprot import phosphosites
+from uniprot import ptms
 
 
 def analyse(uid):
@@ -25,5 +25,6 @@ def analyse(uid):
             for r in structure.get_residues()
         ]
     ).set_index("pos")
-    sites = residues.join(pd.Series(phosphosites(uid), name="type", dtype=str), how="inner").rename_axis("pos").reset_index()
+    sites = pd.DataFrame(ptms(uid), columns=["pos", "ptm", "type"]).merge(residues.reset_index(), on="pos")
+    sites = sites[["pos", "res", "pLDDT", "RSA", "ptm", "type"]]
     return pdb, residues, sites
