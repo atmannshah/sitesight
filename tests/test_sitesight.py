@@ -63,3 +63,25 @@ def test_no_sites(monkeypatch):
     monkeypatch.setitem(FEATURES, "features", [])
     monkeypatch.setattr(sitesight.requests, "get", fake_get)
     assert sitesight.analyse("X")[2].empty
+
+
+
+
+
+def test_crosstalk(monkeypatch):
+    monkeypatch.setattr(sitesight.requests, "get", fake_get)
+    monkeypatch.setitem(
+        FEATURES,
+        "features",
+        [
+            feature("Modified residue", 1, "N-acetylalanine"),
+            feature("Modified residue", 2, "Phosphoserine"),
+            feature("Modified residue", 3, "N6-acetyllysine"),
+            feature("Modified residue", 3, "N6-methyllysine"),
+        ],
+    )
+    monkeypatch.setattr(sitesight, "CROSSTALK_CUTOFF", 5.0)
+    nearby = sitesight.analyse("X")[2].set_index("type")["nearby"]
+    assert nearby["N-acetylalanine"] == "S2 Phospho"
+    assert nearby["Phosphoserine"] == "A1 Acetyl, K3 Acetyl, K3 Methyl"
+    assert nearby["N6-acetyllysine"] == "S2 Phospho"    
