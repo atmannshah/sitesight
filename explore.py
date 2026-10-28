@@ -1,5 +1,7 @@
 import json
 
+import altair as alt
+import pandas as pd
 import py3Dmol
 import streamlit as st
 import streamlit.components.v1 as components
@@ -54,7 +56,18 @@ shown = sites[sites["ptm"].isin(chosen)].reset_index(drop=True)
 left, right = st.columns([3, 2], gap="large")
 
 with right:
-    st.line_chart(residues["pLDDT"], height=520, x_label="Residue", y_label="pLDDT")
+    confidence, landscape = st.tabs(["pLDDT", "PTM landscape"])
+    confidence.line_chart(residues["pLDDT"], height=480, x_label="Residue", y_label="pLDDT")
+    points = alt.Chart(shown).mark_circle(size=90, opacity=0.8).encode(
+        x=alt.X("pLDDT", scale=alt.Scale(domain=[0, 100])),
+        y=alt.Y("RSA", scale=alt.Scale(domain=[0, 1], clamp=True)),
+        color=alt.Color("ptm", scale=alt.Scale(domain=list(PTM_COLOURS), range=[c for c, _ in PTM_COLOURS.values()]), legend=None),
+        tooltip=["pos", "res", "ptm", "type", "pLDDT", "RSA"],
+    )
+    rules = alt.Chart(pd.DataFrame({"pLDDT": [70], "RSA": [0.25]}))
+    chart = points + rules.mark_rule(strokeDash=[4, 4], color="#9CA3AF").encode(x="pLDDT") + rules.mark_rule(strokeDash=[4, 4], color="#9CA3AF").encode(y="RSA")
+    landscape.altair_chart(chart.properties(height=480))
+    landscape.caption("Dashed lines mark pLDDT 70 and RSA 0.25. Top left is exposed and disordered, which is where most PTMs like to hang out.")
 
 picked = None
 if sites.empty:
@@ -64,6 +77,7 @@ elif shown.empty:
 else:
     rows = st.dataframe(shown, hide_index=True, on_select="rerun", selection_mode="single-row").selection.rows
     picked = int(shown["pos"][rows[0]]) if rows else None
+    st.download_button("Download CSV", shown.to_csv(index=False), f"{uid}_ptms.csv", "text/csv")
     if rows and shown["nearby"][rows[0]]:
         st.caption(f"Within 8 Å of {seq1(shown['res'][rows[0]])}{picked}: {shown['nearby'][rows[0]]}. Possible crosstalk, or just good neighbours.")
     else:
