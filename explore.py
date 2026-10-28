@@ -54,16 +54,20 @@ shown = sites[sites["ptm"].isin(chosen)].reset_index(drop=True)
 left, right = st.columns([3, 2], gap="large")
 
 with right:
-    st.line_chart(residues["pLDDT"], height=220)
-    picked = None
-    if sites.empty:
-        st.info("No annotated PTMs. This protein is exactly as translated, apparently.")
-    elif shown.empty:
-        st.info("Pick a PTM type above.")
+    st.line_chart(residues["pLDDT"], height=520, x_label="Residue", y_label="pLDDT")
+
+picked = None
+if sites.empty:
+    st.info("No annotated PTMs. This protein is exactly as translated, apparently.")
+elif shown.empty:
+    st.info("Pick a PTM type above.")
+else:
+    rows = st.dataframe(shown, hide_index=True, on_select="rerun", selection_mode="single-row").selection.rows
+    picked = int(shown["pos"][rows[0]]) if rows else None
+    if rows and shown["nearby"][rows[0]]:
+        st.caption(f"Within 8 Å of {seq1(shown['res'][rows[0]])}{picked}: {shown['nearby'][rows[0]]}. Possible crosstalk, or just good neighbours.")
     else:
-        rows = st.dataframe(shown, hide_index=True, on_select="rerun", selection_mode="single-row").selection.rows
-        picked = int(shown["pos"][rows[0]]) if rows else None
-        st.caption("Select a row to zoom to that site.")
+        st.caption("Select a row to zoom to that site. The nearby column lists other PTMs within 8 Å.")
 
 with left:
     mode = st.segmented_control("View", ["Confidence", "PTMs"], default="Confidence", label_visibility="collapsed") or "Confidence"
